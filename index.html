@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modeling IB Physics : Kinematics</title>
+    
+    <style>
+
+        /* ... All your existing styles ... */
+
+    .container {
+        position: relative; /* This is needed for the video's positioning */
+        width: 100%;
+        max-width: 1400px;
+        /* ... etc ... */
+    }
+
+    #corner-video {
+        position: absolute;
+        top: 1.5rem; /* Adjust this value to change distance from top */
+        right: 1.5rem; /* Adjust this value to change distance from right */
+        border-radius: 0.5rem;
+        opacity: 0.8; /* Makes the video slightly transparent */
+        z-index: 10; /* Ensures the video is on top of other content */
+    }
+
+    /* ... Rest of your styles ... */
+        /* === USER'S DARK THEME APPLIED === */
+        :root {
+            --bg-color: #111827;
+            --card-bg: #1f2937;
+            --primary-text: #f9fafb;
+            --secondary-text: #9ca3af;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #38bdf8;
+            --success-green: #4ade80;
+            --failure-red: #f87171;
+            --border-color: #374151;
+            --shadow-color: rgba(0, 0, 0, 0.25);
+
+            /* Graph specific colors */
+            --graph-line-red: #f87171;
+            --graph-axis-color: var(--secondary-text);
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: var(--primary-text);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            box-shadow: 0 0.5rem 1.5rem var(--shadow-color);
+            padding: 2rem;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+        }
+        
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 1rem;
+        }
+        #logo {
+            height: 80px;
+            width: auto;
+        }
+        h1 {
+            margin-top: 0;
+            margin-bottom: 0;
+            font-size: 2.25rem;
+            color: var(--primary-text);
+        }
+        
+        h2, h3 {
+            text-align: center;
+            font-weight: 600;
+        }
+        h2 { font-size: 1.75rem; color: var(--accent-purple); }
+        h3 { font-size: 1.25rem; color: var(--accent-blue); margin-bottom: 1rem; }
+
+        p.description {
+            text-align: center;
+            font-size: 1.1rem;
+            color: var(--secondary-text);
+            max-width: 800px;
+            margin: 0.5rem auto 2rem auto;
+        }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem 2.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 2rem;
+        }
+        .control-group {
+            display: grid;
+            grid-template-columns: 130px 1fr 80px;
+            align-items: center;
+            gap: 1rem;
+        }
+        .slider-label { font-weight: 500; text-align: right; color: var(--secondary-text); }
+        .slider-value { font-weight: 600; color: var(--accent-purple); text-align: center; font-size: 1.1rem; }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 5px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent-blue);
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid var(--card-bg);
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--accent-blue);
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid var(--card-bg);
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+        }
+
+        .button-container {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        #throwButton {
+            padding: 0.8rem 2.5rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-text);
+            background-image: linear-gradient(to right, var(--accent-purple), var(--accent-blue));
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        #throwButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+        
+        .main-content-area {
+            display: grid;
+            grid-template-columns: 2.5fr 1fr;
+            gap: 2rem;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+        }
+        #simulationCanvas {
+            width: 100%;
+            height: auto;
+            background-color: var(--card-bg); /* Match card */
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+        .graphs-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .graph-container {
+            background-color: var(--bg-color); /* Match main bg */
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        
+        .output-panels {
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        #status, #velocity-display {
+            font-size: 1.1rem;
+            font-weight: 500;
+            text-align: center;
+            padding: 1rem;
+            background-color: var(--bg-color); /* Match main bg */
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            line-height: 1.6;
+        }
+        #velocity-display {
+            font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .guidance-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+        }
+        .guidance-section p { line-height: 1.7; color: var(--secondary-text); }
+        .two-column-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        .column {
+            background-color: var(--bg-color);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+        .column h3 {
+            color: var(--accent-blue);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+        .column ul { list-style-type: none; padding-left: 0; }
+        .column li { margin-bottom: 0.75rem; }
+        
+        .equation-box {
+            background-color: var(--bg-color);
+            border-left: 4px solid var(--accent-blue);
+            padding: 1.2rem;
+            margin: 1.5rem 0;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            text-align: center;
+        }
+        .final-equation-box {
+            border-left-color: var(--success-green);
+        }
+        .equation {
+            font-size: 1.3rem;
+            font-family: "Georgia", "Cambria", "Times New Roman", serif;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.3em;
+        }
+        .equation i { font-style: italic; }
+        .equation sub, .equation sup { font-size: 0.8em; line-height: 1; position: relative; }
+        .equation sup { bottom: 0.5em; }
+        .equation sub { top: 0.3em; }
+        .equation .fraction { display: inline-flex; flex-direction: column; text-align: center; vertical-align: middle; margin: 0 0.2em; }
+        .equation .numerator { font-size: 1.1rem; padding: 0 0.2em; border-bottom: 1.5px solid var(--primary-text); }
+        .equation .denominator { font-size: 1.1rem; padding: 0 0.2em; }
+        
+        @media (max-width: 1200px) { .main-content-area { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) {
+            .header-container { flex-direction: column; gap: 10px; }
+            .two-column-layout { grid-template-columns: 1fr; }
+            .control-group { grid-template-columns: 1fr; text-align: center; }
+            .slider-label { text-align: center; margin-bottom: 0.5rem; }
+            h1 { font-size: 1.8rem; }
+            .container { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <video id="corner-video" width="220" autoplay muted loop>
+        <source src="my-video.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+  
+    <div class="header-container">
+        <img id="logo" src="my-logo.png" alt="Logo">
+        <h1>MODELING IB PHYSICS : KINEMATICS</h1>
+    </div>
+    
+    <p class="description">
+        Adjust the launch parameters to control the ball's trajectory. The simulation calculates the path and provides detailed feedback on impact, including final velocity and angle.
+    </p>
+
+    <div class="controls-grid">
+        <div class="control-group">
+            <label class="slider-label" for="heightSlider">Initial Height:</label>
+            <input type="range" id="heightSlider" min="0.5" max="5" value="1.8" step="0.1">
+            <span class="slider-value" id="heightValue">1.8 m</span>
+        </div>
+        <div class="control-group">
+            <label class="slider-label" for="speedSlider">Launch Speed:</label>
+            <input type="range" id="speedSlider" min="1" max="30" value="12.3" step="0.1">
+            <span class="slider-value" id="speedValue">12.3 m/s</span>
+        </div>
+        <div class="control-group">
+            <label class="slider-label" for="wallHeightSlider">Wall Height:</label>
+            <input type="range" id="wallHeightSlider" min="1" max="15" value="12.1" step="0.1">
+            <span class="slider-value" id="wallHeightValue">12.1 m</span>
+        </div>
+        <div class="control-group">
+            <label class="slider-label" for="wallDistSlider">Distance to Wall:</label>
+            <input type="range" id="wallDistSlider" min="5" max="40" value="13" step="1">
+            <span class="slider-value" id="wallDistValue">13 m</span>
+        </div>
+        <div class="control-group">
+            <label class="slider-label" for="speedSimSlider">Sim Speed:</label>
+            <input type="range" id="speedSimSlider" min="0.1" max="1.5" value="1" step="0.1">
+            <span class="slider-value" id="speedSimValue">1.0x</span>
+        </div>
+        <div class="button-container">
+            <button id="throwButton">Throw Ball</button>
+        </div>
+    </div>
+
+    <div class="main-content-area">
+        <canvas id="simulationCanvas" width="800" height="500"></canvas>
+        
+        <div class="graphs-wrapper">
+            <div class="graph-container">
+                <h3>Vx vs. Time</h3>
+                <canvas id="vxGraphCanvas" width="400" height="220"></canvas>
+            </div>
+            <div class="graph-container">
+                <h3>Vy vs. Time</h3>
+                <canvas id="vyGraphCanvas" width="400" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="output-panels">
+        <div id="status">Adjust parameters and press "Throw Ball".</div>
+        <div id="velocity-display">Vx: 0.00 m/s | Vy: 0.00 m/s</div>
+    </div>
+
+    <div class="guidance-section">
+        <h2>How to Solve This Analytically</h2>
+        <p>You can predict the outcome of the simulation using physics. The key is to separate the projectile's motion into independent horizontal (X) and vertical (Y) components. We use the SUVAT equations of motion, where <strong><i>s</i></strong>=displacement, <strong><i>u</i></strong>=initial velocity, <strong><i>v</i></strong>=final velocity, <strong><i>a</i></strong>=acceleration, and <strong><i>t</i></strong>=time.</p>
+        
+        <div class="two-column-layout">
+            <div class="column">
+                <h3>1. Horizontal Motion (X-axis)</h3>
+                <p>In the horizontal direction, there is no acceleration (we ignore air resistance). The velocity is constant.</p>
+                <ul>
+                    <li><strong><i>s</i><sub>x</sub></strong> (Displacement) = Distance to Wall (<i>d</i>)</li>
+                    <li><strong><i>u</i><sub>x</sub></strong> (Initial Velocity) = Launch Speed &times; cos(48&deg;)</li>
+                    <li><strong><i>a</i><sub>x</sub></strong> (Acceleration) = 0 m/s²</li>
+                </ul>
+                <p>Our goal is to find the <strong>time (<i>t</i>)</strong> it takes to reach the wall. We use the simplest motion equation:</p>
+                <div class="equation-box">
+                    <div class="equation"><i>s</i> = <i>u</i> &times; <i>t</i></div>
+                </div>
+                <p>Solving for <i>t</i>:</p>
+                <div class="equation-box">
+                    <div class="equation">
+                        <i>t</i> = <div class="fraction"><span class="numerator"><i>s</i><sub>x</sub></span><span class="denominator"><i>u</i><sub>x</sub></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column">
+                <h3>2. Vertical Motion (Y-axis)</h3>
+                <p>In the vertical direction, the only acceleration is gravity (<i>-g</i>).</p>
+                <ul>
+                    <li><strong><i>s</i><sub>y</sub></strong> (Displacement) = <i>h</i><sub>final</sub> - <i>h</i><sub>initial</sub></li>
+                    <li><strong><i>u</i><sub>y</sub></strong> (Initial Velocity) = Launch Speed &times; sin(48&deg;)</li>
+                    <li><strong><i>a</i><sub>y</sub></strong> (Acceleration) = -9.81 m/s²</li>
+                    <li><strong><i>t</i></strong> (Time) = Use the time calculated from Step 1.</li>
+                </ul>
+                <p>Now, we find the vertical displacement (<i>s</i><sub>y</sub>) using the time <i>t</i>:</p>
+                <div class="equation-box">
+                    <div class="equation">
+                        <i>s</i> = <i>ut</i> + <div class="fraction"><span class="numerator">1</span><span class="denominator">2</span></div><i>at</i><sup>2</sup>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="conclusion">
+            <h3>3. Putting It All Together</h3>
+            <p>Substitute the vertical components into the equation:</p>
+            <div class="equation-box">
+                <div class="equation">
+                    <i>h</i><sub>final</sub> - <i>h</i><sub>initial</sub> = <i>u</i><sub>y</sub><i>t</i> + <div class="fraction"><span class="numerator">1</span><span class="denominator">2</span></div><i>a</i><sub>y</sub><i>t</i><sup>2</sup>
+                </div>
+            </div>
+            <p>Finally, solve for the ball's height (<i>h</i><sub>final</sub>) when it reaches the wall:</p>
+            <div class="equation-box final-equation-box">
+                <div class="equation">
+                    <i>h</i><sub>final</sub> = <i>h</i><sub>initial</sub> + <i>u</i><sub>y</sub><i>t</i> - <div class="fraction"><span class="numerator">1</span><span class="denominator">2</span></div><i>gt</i><sup>2</sup>
+                </div>
+            </div>
+            <p>By plugging in the value of <i>t</i> from Step 1, you can calculate the exact height. If this calculated height is between 0 and the wall's height, it's a hit! If it's greater than the wall's height, it clears the wall. If the calculation shows the ball hits the ground (<i>y</i> < 0) before reaching the wall's distance, it falls short.</p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+        const heightSlider = document.getElementById('heightSlider'), heightValueSpan = document.getElementById('heightValue');
+        const speedSlider = document.getElementById('speedSlider'), speedValueSpan = document.getElementById('speedValue');
+        const wallHeightSlider = document.getElementById('wallHeightSlider'), wallHeightValueSpan = document.getElementById('wallHeightValue');
+        const wallDistSlider = document.getElementById('wallDistSlider'), wallDistValueSpan = document.getElementById('wallDistValue');
+        const speedSimSlider = document.getElementById('speedSimSlider'), speedSimValueSpan = document.getElementById('speedSimValue');
+        const throwButton = document.getElementById('throwButton');
+        const statusDiv = document.getElementById('status');
+        const velocityDisplay = document.getElementById('velocity-display');
+        const vxGraphCanvas = document.getElementById('vxGraphCanvas'), vxCtx = vxGraphCanvas.getContext('2d');
+        const vyGraphCanvas = document.getElementById('vyGraphCanvas'), vyCtx = vyGraphCanvas.getContext('2d');
+        
+        const G = -9.81;
+        const LAUNCH_ANGLE_DEG = 48;
+        const LAUNCH_ANGLE_RAD = LAUNCH_ANGLE_DEG * Math.PI / 180;
+        
+        let initialHeight, initialSpeed, wallHeight, wallDistance, timeScale;
+        let animationFrameId = null;
+        let ball = { x: 0, y: 0, vx: 0, vy: 0 };
+        let currentVy = 0;
+        let trajectory = [], vxData = [], vyData = [];
+        let time = 0, finalTime = 0;
+        
+        const groundLevel = canvas.height - 40;
+
+        function getScale() {
+            const maxRange = Math.max(wallDistance + 10, 50);
+            return canvas.width / maxRange;
+        }
+
+        function transform(x_m, y_m) {
+            const scale = getScale();
+            return { x: 40 + x_m * scale, y: groundLevel - y_m * scale };
+        }
+
+        // --- JAVASCRIPT DRAWING COLORS UPDATED FOR DARK THEME ---
+        function drawScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Match canvas background to the card background
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-bg').trim();
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ground
+            ctx.strokeStyle = '#8B5C3B'; // Light Brown
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, groundLevel);
+            ctx.lineTo(canvas.width, groundLevel);
+            ctx.stroke();
+            
+            // Wall
+            const wallTopLeft = transform(wallDistance, wallHeight);
+            const wallPixelHeight = groundLevel - wallTopLeft.y;
+            ctx.fillStyle = '#94A3B8'; // Light Blue-Gray
+            ctx.fillRect(wallTopLeft.x, wallTopLeft.y, 10, Math.max(0, wallPixelHeight));
+
+            // Labels
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--secondary-text').trim();
+            ctx.font = '12px system-ui';
+            ctx.fillText("Ground", 5, groundLevel + 15);
+            ctx.fillText(`Wall (${wallHeight.toFixed(1)}m)`, wallTopLeft.x - 20, wallTopLeft.y - 10);
+            
+            // Launch point
+            const launchPos = transform(0, initialHeight);
+            ctx.fillStyle = '#4ADE80'; // Vibrant Green
+            ctx.beginPath();
+            ctx.arc(launchPos.x, launchPos.y, 5, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.fillText(`Launch (${initialHeight.toFixed(1)}m)`, launchPos.x + 10, launchPos.y - 10);
+        }
+
+        function drawArrowhead(fromX, fromY, toX, toY, color) {
+            const headlen = 8;
+            const dx = toX - fromX;
+            const dy = toY - fromY;
+            const angle = Math.atan2(dy, dx);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.stroke();
+        }
+
+        function drawBallAndTrajectory() {
+            if (trajectory.length > 1) {
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)'; // Light Blue Trajectory
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                const startPoint = transform(trajectory[0].x, trajectory[0].y);
+                ctx.moveTo(startPoint.x, startPoint.y);
+                trajectory.forEach(p => ctx.lineTo(transform(p.x, p.y).x, transform(p.x, p.y).y));
+                ctx.stroke();
+            }
+            const ballPos = transform(ball.x, ball.y);
+            ctx.fillStyle = '#FDE047'; // Bright Yellow Ball
+            ctx.beginPath();
+            ctx.arc(ballPos.x, ballPos.y, 7, 0, 2 * Math.PI);
+            ctx.fill();
+
+            const vectorScale = 6;
+            const vxColor = '#A78BFA'; // Purple
+            const vyColor = '#F472B6'; // Pink
+            
+            const vx_end_x = ballPos.x + ball.vx * vectorScale;
+            ctx.beginPath();
+            ctx.moveTo(ballPos.x, ballPos.y);
+            ctx.lineTo(vx_end_x, ballPos.y);
+            ctx.strokeStyle = vxColor;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            drawArrowhead(ballPos.x, ballPos.y, vx_end_x, ballPos.y, vxColor);
+            ctx.fillStyle = vxColor;
+            ctx.font = 'bold 12px system-ui';
+            ctx.fillText('Vx', vx_end_x + 5, ballPos.y + 4);
+
+            const vy_end_y = ballPos.y - currentVy * vectorScale;
+            ctx.beginPath();
+            ctx.moveTo(ballPos.x, ballPos.y);
+            ctx.lineTo(ballPos.x, vy_end_y);
+            ctx.strokeStyle = vyColor;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            drawArrowhead(ballPos.x, ballPos.y, ballPos.x, vy_end_y, vyColor);
+            ctx.fillStyle = vyColor;
+            ctx.fillText('Vy', ballPos.x + 5, vy_end_y - 5);
+        }
+
+        function drawGraph(gCtx, data, timeLimit, yRange, color) {
+            const w = gCtx.canvas.width, h = gCtx.canvas.height;
+            const padX = 40, padY = 25;
+            gCtx.clearRect(0, 0, w, h);
+            
+            // Draw axes and labels
+            const axisColor = getComputedStyle(document.documentElement).getPropertyValue('--graph-axis-color').trim();
+            gCtx.strokeStyle = axisColor;
+            gCtx.fillStyle = axisColor;
+            gCtx.lineWidth = 1;
+            gCtx.font = '11px system-ui';
+            gCtx.beginPath();
+            gCtx.moveTo(padX, padY); gCtx.lineTo(padX, h - padY); gCtx.lineTo(w - padX, h - padY);
+            gCtx.stroke();
+            
+            const yLabels = [yRange.min, (yRange.min + yRange.max) / 2, yRange.max];
+            yLabels.forEach(val => {
+                const y = h - padY - ((val - yRange.min) / (yRange.max - yRange.min)) * (h - 2 * padY);
+                gCtx.textAlign = 'right'; gCtx.textBaseline = 'middle';
+                gCtx.fillText(val.toFixed(1), padX - 8, y);
+            });
+            const xLabels = [0, timeLimit / 2, timeLimit];
+            xLabels.forEach(val => {
+                const x = padX + (val / timeLimit) * (w - 2 * padX);
+                gCtx.textAlign = 'center'; gCtx.textBaseline = 'top';
+                gCtx.fillText(val.toFixed(1) + 's', x, h - padY + 5);
+            });
+            
+            if (data.length < 2) return;
+            
+            // Draw the plotted line
+            gCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue(color).trim();
+            gCtx.lineWidth = 2.5;
+            gCtx.beginPath();
+            data.forEach((point, i) => {
+                const x = padX + (point.time / timeLimit) * (w - 2 * padX);
+                const y = h - padY - ((point.value - yRange.min) / (yRange.max - yRange.min)) * (h - 2 * padY);
+                if (i === 0) gCtx.moveTo(x, y); else gCtx.lineTo(x, y);
+            });
+            gCtx.stroke();
+        }
+
+        function drawVelocityGraphs() {
+            const timeLimit = finalTime > 0 ? finalTime : (time > 0 ? time : 1);
+            const vxRange = { min: ball.vx - 2, max: ball.vx + 2 };
+            if (ball.vx === 0) { vxRange.min = -2; vxRange.max = 2; }
+            drawGraph(vxCtx, vxData, timeLimit, vxRange, '--graph-line-red');
+
+            const vyMaxAbs = Math.max(Math.abs(ball.vy), Math.abs(ball.vy + G * timeLimit));
+            const vyRange = { min: -vyMaxAbs - 5, max: vyMaxAbs + 5 };
+            drawGraph(vyCtx, vyData, timeLimit, vyRange, '--graph-line-red');
+        }
+
+        function startSimulation() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            updateAllValues();
+            time = 0; finalTime = 0;
+            trajectory = []; vxData = []; vyData = [];
+            statusDiv.textContent = 'In motion...';
+            velocityDisplay.innerHTML = `Vx: 0.00 m/s | Vy: 0.00 m/s`;
+            ball.vx = initialSpeed * Math.cos(LAUNCH_ANGLE_RAD);
+            ball.vy = initialSpeed * Math.sin(LAUNCH_ANGLE_RAD);
+            ball.x = 0; ball.y = initialHeight;
+            currentVy = ball.vy;
+            trajectory.push({x: ball.x, y: ball.y});
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function animate() {
+            const dt = 1 / 60;
+            let simulationEnded = false;
+            time += dt * timeScale;
+            ball.x = ball.vx * time;
+            ball.y = initialHeight + (ball.vy * time) + (0.5 * G * time * time);
+            currentVy = ball.vy + G * time;
+            
+            velocityDisplay.innerHTML = `Vx: ${ball.vx.toFixed(2)} m/s | Vy: ${currentVy.toFixed(2)} m/s`;
+            
+            vxData.push({ time: time, value: ball.vx });
+            vyData.push({ time: time, value: currentVy });
+            
+            let eventOccurred = false;
+            let timeOfEvent = 0;
+
+            if (ball.x >= wallDistance) {
+                timeOfEvent = wallDistance / ball.vx;
+                const hitHeight = initialHeight + (ball.vy * timeOfEvent) + (0.5 * G * timeOfEvent * timeOfEvent);
+                if (hitHeight > 0 && hitHeight <= wallHeight) {
+                    ball.x = wallDistance;
+                    ball.y = hitHeight;
+                    const finalVy = ball.vy + G * timeOfEvent;
+                    currentVy = finalVy;
+                    const finalSpeed = Math.sqrt(ball.vx**2 + finalVy**2);
+                    const finalAngle = Math.atan2(finalVy, ball.vx) * 180 / Math.PI;
+                    statusDiv.innerHTML = `HIT THE WALL at <b>${hitHeight.toFixed(2)} m</b>.<br>` +
+                                          `Final V: (Vx: ${ball.vx.toFixed(2)}, Vy: ${finalVy.toFixed(2)}) m/s | ` +
+                                          `Speed: ${finalSpeed.toFixed(2)} m/s at ${finalAngle.toFixed(1)}&deg;`;
+                    eventOccurred = true;
+                }
+            }
+            if (!eventOccurred && ball.y < 0) {
+                const a = 0.5 * G, b = ball.vy, c = initialHeight;
+                timeOfEvent = (-b - Math.sqrt(b*b - 4*a*c)) / (2*a);
+                const finalRange = ball.vx * timeOfEvent;
+                ball.x = finalRange;
+                ball.y = 0;
+                const finalVy = ball.vy + G * timeOfEvent;
+                currentVy = finalVy;
+                const finalSpeed = Math.sqrt(ball.vx**2 + finalVy**2);
+                const finalAngle = Math.atan2(finalVy, ball.vx) * 180 / Math.PI;
+                let outcomeMessage = (finalRange > wallDistance) ? `CLEARED THE WALL` : `FELL SHORT`;
+                statusDiv.innerHTML = `${outcomeMessage}, landing at <b>${finalRange.toFixed(2)} m</b>.<br>` +
+                                      `Final V: (Vx: ${ball.vx.toFixed(2)}, Vy: ${finalVy.toFixed(2)}) m/s | ` +
+                                      `Speed: ${finalSpeed.toFixed(2)} m/s at ${finalAngle.toFixed(1)}&deg;`;
+                eventOccurred = true;
+            }
+
+            if (eventOccurred) {
+                simulationEnded = true;
+                finalTime = timeOfEvent;
+                vxData = vxData.filter(p => p.time <= finalTime);
+                vyData = vyData.filter(p => p.time <= finalTime);
+                vxData.push({ time: finalTime, value: ball.vx });
+                vyData.push({ time: finalTime, value: currentVy });
+            }
+            
+            drawScene();
+            if(!simulationEnded) trajectory.push({x: ball.x, y: ball.y});
+            drawBallAndTrajectory();
+            drawVelocityGraphs();
+
+            if (eventOccurred) {
+                animationFrameId = null;
+                drawScene();
+                drawBallAndTrajectory();
+            } else {
+                animationFrameId = requestAnimationFrame(animate);
+            }
+        }
+
+        function updateAllValues() {
+            initialHeight = parseFloat(heightSlider.value);
+            initialSpeed = parseFloat(speedSlider.value);
+            wallHeight = parseFloat(wallHeightSlider.value);
+            wallDistance = parseFloat(wallDistSlider.value);
+            timeScale = parseFloat(speedSimSlider.value);
+            heightValueSpan.textContent = `${initialHeight.toFixed(1)} m`;
+            speedValueSpan.textContent = `${initialSpeed.toFixed(1)} m/s`;
+            wallHeightValueSpan.textContent = `${wallHeight.toFixed(1)} m`;
+            wallDistValueSpan.textContent = `${wallDistance} m`;
+            speedSimValueSpan.textContent = `${timeScale.toFixed(1)}x`;
+        }
+
+        function onSliderChange() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+            updateAllValues();
+            drawScene();
+            statusDiv.textContent = 'Adjust parameters and press "Throw Ball".';
+            velocityDisplay.innerHTML = `Vx: 0.00 m/s | Vy: 0.00 m/s`;
+            vxCtx.clearRect(0,0,vxGraphCanvas.width, vxGraphCanvas.height);
+            vyCtx.clearRect(0,0,vyGraphCanvas.width, vyGraphCanvas.height);
+        }
+        
+        [heightSlider, speedSlider, wallHeightSlider, wallDistSlider, speedSimSlider].forEach(slider => {
+            slider.addEventListener('input', onSliderChange);
+        });
+        throwButton.addEventListener('click', startSimulation);
+        
+        onSliderChange();
+    });
+</script>
+
+</body>
+</html>
