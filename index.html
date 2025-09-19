@@ -54,6 +54,7 @@
             top: 1.5rem;
             right: 1.5rem;
             width: 220px; /* Explicit width for better control */
+            height: auto;
             border-radius: 0.5rem;
             opacity: 0.7;
             z-index: 10;
@@ -75,6 +76,7 @@
             margin-bottom: 0;
             font-size: 2.25rem;
             color: var(--primary-text);
+            text-align: center;
         }
         
         h2, h3 {
@@ -159,7 +161,13 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
         }
-        
+        #throwButton:disabled {
+            background-image: none;
+            background-color: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
         .main-content-area {
             display: grid;
             grid-template-columns: 2.5fr 1fr;
@@ -285,26 +293,312 @@
     
     <div class="header-container">
         <img id="logo" src="my-logo.png" alt="Logo">
-        <h1>MODELING IB PHYSICS : KINEMATICS</h1>
+        <h1>Advanced Kinematics: Collisions</h1>
     </div>
     
     <p class="description">
-        Adjust the launch parameters to control the ball's trajectory. The simulation calculates the path and provides detailed feedback on impact, including final velocity and angle.
+        This simulation models projectile motion with realistic collisions. Adjust the launch and environment parameters, then observe how the ball bounces off the wall and ground until it comes to rest.
     </p>
 
     <div class="controls-grid">
+        <div class="control-group">
+            <label class="slider-label" for="heightSlider">Initial Height:</label>
+            <input type="range" id="heightSlider" min="0.5" max="5" value="1.8" step="0.1">
+            <span class="slider-value" id="heightValue">1.8 m</span>
         </div>
+        <div class="control-group">
+            <label class="slider-label" for="speedSlider">Launch Speed:</label>
+            <input type="range" id="speedSlider" min="1" max="30" value="15" step="0.1">
+            <span class="slider-value" id="speedValue">15.0 m/s</span>
+        </div>
+        <div class="control-group">
+            <label class="slider-label" for="wallHeightSlider">Wall Height:</label>
+            <input type="range" id="wallHeightSlider" min="1" max="15" value="12.1" step="0.1">
+            <span class="slider-value" id="wallHeightValue">12.1 m</span>
+        </div>
+        <div class="control-group">
+            <label class="slider-label" for="wallDistSlider">Distance to Wall:</label>
+            <input type="range" id="wallDistSlider" min="5" max="40" value="13" step="1">
+            <span class="slider-value" id="wallDistValue">13 m</span>
+        </div>
+        <div class="control-group">
+            <label class="slider-label" for="restitutionSlider">Bounciness:</label>
+            <input type="range" id="restitutionSlider" min="0.1" max="0.9" value="0.7" step="0.05">
+            <span class="slider-value" id="restitutionValue">0.70</span>
+        </div>
+        <div class="control-group">
+            <label class="slider-label" for="speedSimSlider">Sim Speed:</label>
+            <input type="range" id="speedSimSlider" min="0.1" max="2" value="1" step="0.1">
+            <span class="slider-value" id="speedSimValue">1.0x</span>
+        </div>
+        <div class="button-container">
+            <button id="throwButton">Throw Ball</button>
+        </div>
+    </div>
+
     <div class="main-content-area">
+        <canvas id="simulationCanvas" width="800" height="500"></canvas>
+        <div class="graphs-wrapper">
+            <div class="graph-container">
+                <h3>Vx vs. Time</h3>
+                <canvas id="vxGraphCanvas" width="400" height="220"></canvas>
+            </div>
+            <div class="graph-container">
+                <h3>Vy vs. Time</h3>
+                <canvas id="vyGraphCanvas" width="400" height="220"></canvas>
+            </div>
         </div>
+    </div>
+
     <div class="output-panels">
-        </div>
+        <div id="status">Adjust parameters and press "Throw Ball".</div>
+        <div id="velocity-display">Vx: 0.00 m/s | Vy: 0.00 m/s</div>
+    </div>
+    
     <div class="guidance-section">
-        </div>
+        <h2>Analytical Prediction (First Arc Only)</h2>
+        <p>The analytical solution described below can predict the outcome of the ball's first flight path—whether it will hit the wall, clear it, or fall short. The simulation models what happens next, including all subsequent bounces, which requires a more complex frame-by-frame calculation.</p>
+    </div>
 
 </div>
 
 <script>
-    // ... all your javascript code ...
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+        const heightSlider = document.getElementById('heightSlider'), heightValueSpan = document.getElementById('heightValue');
+        const speedSlider = document.getElementById('speedSlider'), speedValueSpan = document.getElementById('speedValue');
+        const wallHeightSlider = document.getElementById('wallHeightSlider'), wallHeightValueSpan = document.getElementById('wallHeightValue');
+        const wallDistSlider = document.getElementById('wallDistSlider'), wallDistValueSpan = document.getElementById('wallDistValue');
+        const restitutionSlider = document.getElementById('restitutionSlider'), restitutionValueSpan = document.getElementById('restitutionValue');
+        const speedSimSlider = document.getElementById('speedSimSlider'), speedSimValueSpan = document.getElementById('speedSimValue');
+        const throwButton = document.getElementById('throwButton');
+        const statusDiv = document.getElementById('status');
+        const velocityDisplay = document.getElementById('velocity-display');
+        const vxGraphCanvas = document.getElementById('vxGraphCanvas'), vxCtx = vxGraphCanvas.getContext('2d');
+        const vyGraphCanvas = document.getElementById('vyGraphCanvas'), vyCtx = vyGraphCanvas.getContext('2d');
+        
+        const G = -9.81;
+        const LAUNCH_ANGLE_DEG = 48;
+        const LAUNCH_ANGLE_RAD = LAUNCH_ANGLE_DEG * Math.PI / 180;
+        
+        let initialHeight, initialSpeed, wallHeight, wallDistance, restitution, timeScale;
+        let animationFrameId = null;
+        let ball = { x: 0, y: 0, vx: 0, vy: 0, radius: 0.25 };
+        let trajectory = [], vxData = [], vyData = [];
+        let time = 0;
+        
+        function getScale() {
+            const maxRange = Math.max(wallDistance + 10, 50);
+            return (canvas.width - 80) / maxRange;
+        }
+
+        function transform(x_m, y_m) {
+            const scale = getScale();
+            const groundLevel = canvas.height - 40;
+            return { x: 40 + x_m * scale, y: groundLevel - y_m * scale };
+        }
+
+        function drawScene() {
+            const groundLevel = canvas.height - 40;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-bg').trim();
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#8B5C3B'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(0, groundLevel); ctx.lineTo(canvas.width, groundLevel); ctx.stroke();
+            
+            const wallTopLeft = transform(wallDistance, wallHeight);
+            const wallPixelHeight = groundLevel - wallTopLeft.y;
+            ctx.fillStyle = '#94A3B8';
+            ctx.fillRect(wallTopLeft.x, wallTopLeft.y, 10, Math.max(0, wallPixelHeight));
+
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--secondary-text').trim();
+            ctx.font = '12px system-ui';
+            ctx.fillText("Ground", 5, groundLevel + 15);
+            ctx.fillText(`Wall (${wallHeight.toFixed(1)}m)`, wallTopLeft.x - 20, wallTopLeft.y - 10);
+            
+            const launchPos = transform(0, initialHeight);
+            ctx.fillStyle = '#4ADE80';
+            ctx.beginPath(); ctx.arc(launchPos.x, launchPos.y, 5, 0, 2 * Math.PI); ctx.fill();
+            ctx.fillText(`Launch (${initialHeight.toFixed(1)}m)`, launchPos.x + 10, launchPos.y - 10);
+        }
+        
+        function drawBallAndTrajectory() {
+            if (trajectory.length > 1) {
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)'; ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                const startPoint = transform(trajectory[0].x, trajectory[0].y);
+                ctx.moveTo(startPoint.x, startPoint.y);
+                for (let i = 1; i < trajectory.length; i++) {
+                     ctx.lineTo(transform(trajectory[i].x, trajectory[i].y).x, transform(trajectory[i].y, trajectory[i].y).y);
+                }
+                ctx.stroke();
+            }
+            
+            const ballPos = transform(ball.x, ball.y);
+            ctx.fillStyle = '#FDE047';
+            ctx.beginPath();
+            const ballPixelRadius = transform(ball.radius, 0).x - transform(0,0).x;
+            ctx.arc(ballPos.x, ballPos.y, ballPixelRadius, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function drawGraph(gCtx, data, timeLimit, yRange, color) {
+            const w = gCtx.canvas.width, h = gCtx.canvas.height;
+            const padX = 40, padY = 25;
+            gCtx.clearRect(0, 0, w, h);
+            
+            const axisColor = getComputedStyle(document.documentElement).getPropertyValue('--graph-axis-color').trim();
+            gCtx.strokeStyle = axisColor; gCtx.fillStyle = axisColor;
+            gCtx.lineWidth = 1; gCtx.font = '11px system-ui';
+            gCtx.beginPath(); gCtx.moveTo(padX, padY); gCtx.lineTo(padX, h - padY); gCtx.lineTo(w - padX, h - padY); gCtx.stroke();
+            
+            const yLabels = [yRange.min, (yRange.min + yRange.max) / 2, yRange.max];
+            yLabels.forEach(val => {
+                const y = h - padY - ((val - yRange.min) / (yRange.max - yRange.min)) * (h - 2 * padY);
+                gCtx.textAlign = 'right'; gCtx.textBaseline = 'middle';
+                gCtx.fillText(val.toFixed(1), padX - 8, y);
+            });
+            const xLabels = [0, timeLimit / 2, timeLimit];
+            xLabels.forEach(val => {
+                const x = padX + (val / timeLimit) * (w - 2 * padX);
+                gCtx.textAlign = 'center'; gCtx.textBaseline = 'top';
+                gCtx.fillText(val.toFixed(1) + 's', x, h - padY + 5);
+            });
+            
+            if (data.length < 2) return;
+            
+            gCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue(color).trim();
+            gCtx.lineWidth = 2.5;
+            gCtx.beginPath();
+            data.forEach((point, i) => {
+                const x = padX + (point.time / timeLimit) * (w - 2 * padX);
+                const y = h - padY - ((point.value - yRange.min) / (yRange.max - yRange.min)) * (h - 2 * padY);
+                if (i === 0) gCtx.moveTo(x, y); else gCtx.lineTo(x, y);
+            });
+            gCtx.stroke();
+        }
+
+        function drawAllGraphs() {
+            const timeLimit = time > 1 ? time : 1;
+            const vxMax = Math.max(...vxData.map(p => Math.abs(p.value)), Math.abs(ball.vx)) + 2;
+            drawGraph(vxCtx, vxData, timeLimit, {min: -vxMax, max: vxMax}, '--graph-line-red');
+
+            const vyMax = Math.max(...vyData.map(p => Math.abs(p.value)), Math.abs(ball.vy)) + 5;
+            drawGraph(vyCtx, vyData, timeLimit, {min: -vyMax, max: vyMax}, '--graph-line-red');
+        }
+
+        function startSimulation() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            updateAllValues();
+            
+            time = 0;
+            trajectory = []; vxData = []; vyData = [];
+            
+            ball.vx = initialSpeed * Math.cos(LAUNCH_ANGLE_RAD);
+            ball.vy = initialSpeed * Math.sin(LAUNCH_ANGLE_RAD);
+            ball.x = 0; ball.y = initialHeight;
+            
+            trajectory.push({ x: ball.x, y: ball.y });
+            vxData.push({ time: 0, value: ball.vx });
+            vyData.push({ time: 0, value: ball.vy });
+            
+            statusDiv.textContent = 'In motion...';
+            throwButton.disabled = true;
+            
+            let lastTimestamp = 0;
+            function animate(timestamp) {
+                if (!lastTimestamp) lastTimestamp = timestamp;
+                const frameTime = (timestamp - lastTimestamp) / 1000;
+                lastTimestamp = timestamp;
+                
+                // Prevent huge leaps if tab is inactive
+                if (frameTime > 0.1) {
+                    animationFrameId = requestAnimationFrame(animate);
+                    return;
+                }
+                
+                const dt = frameTime * timeScale;
+                updateBallState(dt);
+
+                drawScene();
+                drawBallAndTrajectory();
+                drawAllGraphs();
+
+                if (Math.abs(ball.vx) < 0.1 && Math.abs(ball.vy) < 0.2 && ball.y <= ball.radius) {
+                    statusDiv.textContent = 'Simulation stopped.';
+                    throwButton.disabled = false;
+                    cancelAnimationFrame(animationFrameId);
+                    return;
+                }
+                
+                animationFrameId = requestAnimationFrame(animate);
+            }
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function updateBallState(dt) {
+            ball.x += ball.vx * dt;
+            ball.y += ball.vy * dt;
+            ball.vy += G * dt;
+
+            if (ball.y < ball.radius) {
+                ball.y = ball.radius;
+                ball.vy *= -restitution;
+                ball.vx *= 0.95;
+            }
+
+            if (ball.x > wallDistance - ball.radius) {
+                if (ball.y <= wallHeight) {
+                    ball.x = wallDistance - ball.radius;
+                    ball.vx *= -restitution;
+                }
+            }
+            
+            time += dt;
+            trajectory.push({ x: ball.x, y: ball.y });
+            vxData.push({ time: time, value: ball.vx });
+            vyData.push({ time: time, value: ball.vy });
+            velocityDisplay.innerHTML = `Vx: ${ball.vx.toFixed(2)} m/s | Vy: ${ball.vy.toFixed(2)} m/s`;
+        }
+
+        function updateAllValues() {
+            initialHeight = parseFloat(heightSlider.value);
+            initialSpeed = parseFloat(speedSlider.value);
+            wallHeight = parseFloat(wallHeightSlider.value);
+            wallDistance = parseFloat(wallDistSlider.value);
+            restitution = parseFloat(restitutionSlider.value);
+            timeScale = parseFloat(speedSimSlider.value);
+            heightValueSpan.textContent = `${initialHeight.toFixed(1)} m`;
+            speedValueSpan.textContent = `${initialSpeed.toFixed(1)} m/s`;
+            wallHeightValueSpan.textContent = `${wallHeight.toFixed(1)} m`;
+            wallDistValueSpan.textContent = `${wallDistance} m`;
+            restitutionValueSpan.textContent = `${restitution.toFixed(2)}`;
+            speedSimValueSpan.textContent = `${timeScale.toFixed(1)}x`;
+        }
+
+        function onSliderChange() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            throwButton.disabled = false;
+            updateAllValues();
+            drawScene();
+            statusDiv.textContent = 'Adjust parameters and press "Throw Ball".';
+            velocityDisplay.innerHTML = `Vx: 0.00 m/s | Vy: 0.00 m/s`;
+            vxCtx.clearRect(0,0,vxGraphCanvas.width, vxGraphCanvas.height);
+            vyCtx.clearRect(0,0,vyGraphCanvas.width, vyGraphCanvas.height);
+        }
+        
+        [heightSlider, speedSlider, wallHeightSlider, wallDistSlider, speedSimSlider, restitutionSlider].forEach(slider => {
+            slider.addEventListener('input', onSliderChange);
+        });
+        throwButton.addEventListener('click', startSimulation);
+        
+        onSliderChange();
+    });
 </script>
 
 </body>
